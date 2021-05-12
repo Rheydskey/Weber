@@ -1,8 +1,11 @@
+use crate::engine::StateTag;
+
 #[derive(Debug, Clone)]
 pub struct Node {
     pub id: i32,
     pub name: String,
-    pub body: Vec<Body>
+    pub node_type: StateTag,
+    pub body: Box<Body>
 }
 
 impl Node {
@@ -10,12 +13,25 @@ impl Node {
         Self {
             id: 0,
             name,
-            body: Vec::new()
+            node_type: StateTag::Unset,
+            body: Box::new(Body::Empty)
         }
     }
+    pub fn new_with_type(name: String, node_type: StateTag) -> Node {
+        Self {
+            id: 0,
+            name,
+            node_type,
+            body: Box::new(Body::Empty)
+        }
+    }
+
+    pub fn get_body(&self) -> Body {
+        self.body.as_ref().clone()
+    }
+
     pub fn get_child_by_id(&self, id: i32) -> Option<Node> {
-        for i in self.clone().body {
-            match i {
+            match self.clone().get_body() {
                 Body::Empty => {}
                 Body::Text(_) => {}
                 Body::Element(e) => {
@@ -39,7 +55,6 @@ impl Node {
                     }
                 }
             }
-        }
 
         None
     }

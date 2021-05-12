@@ -1,10 +1,10 @@
-use crate::engine::node::Node;
+use crate::engine::node::{Node, Body};
 
 pub mod parser;
 pub mod node;
 
-#[derive(Debug)]
-enum StateTag {
+#[derive(Debug, Clone)]
+pub enum StateTag {
     Open(String),
     Close(String),
     CloseDouble(String),
@@ -16,8 +16,7 @@ pub fn parse(str: String) {
     let mut nodes : Vec<Node> = Vec::new();
     let mut last = StateTag::Unset;
     let mut hoz_vec = 0;
-    let mut root = Node::new(".".to_string());
-    let mut current = Node::new(String::new());
+    let mut current_node = Node::new(String::new());
     for i in str.chars() {
         match i  {
             '<' => {
@@ -30,15 +29,14 @@ pub fn parse(str: String) {
                     StateTag::Open(e) => {
                         let name = e.clone();
                         last = StateTag::Close(name.clone());
-                        current = Node::new(name.clone());
-                        nodes.push(current);
+                        current_node = Node::new_with_type(name.clone(), StateTag::Open(String::new()));
+                        nodes.push(current_node.clone());
                     }
 
                     StateTag::CloseDouble(e) => {
                         let name = e.clone();
-                        last = StateTag::CloseDouble(name.clone());
-                        current = Node::new(name.clone());
-                        nodes.push(current);
+                        current_node = Node::new_with_type(name.clone(), StateTag::CloseDouble(String::new()));
+                        nodes.push(current_node.clone());
                         last = StateTag::Unset;
                     }
                     _ => {}
@@ -55,7 +53,7 @@ pub fn parse(str: String) {
                     StateTag::Open(current) => {
                         last = StateTag::Open(format!("{}{}", current, e));
                     }
-                    StateTag::Close(current) => {
+                    StateTag::Close(_) => {
                         match e {
                             '<' => {
                                 last = StateTag::Open(String::new());
@@ -63,8 +61,25 @@ pub fn parse(str: String) {
 
                             '>' => continue,
                             '/' => continue,
-                            '\n' => continue,
-                            _ => continue
+                            '\n' | ' ' => continue,
+                            e => {
+                                if let Some(last_node) =nodes.last_mut() {
+                                match last_node.clone().get_body() {
+                                    Body::Empty => {
+                                        if let Some(last_node) = nodes.last_mut() {
+                                            last_node.body = Box::new(Body::Text(format!("{}", e)));
+                                        }
+                                    }
+                                    Body::Text(string) => {
+                                        if let Some(last_node) = nodes.last_mut() {
+                                            last_node.body = Box::new(Body::Text(format!("{}{}", string, e)));
+                                        }
+
+                                    }
+                                    _ => continue
+                                }
+                                }
+                            }
                         }
                     }
                     StateTag::CloseDouble(current) => {
@@ -78,8 +93,8 @@ pub fn parse(str: String) {
                 }
             }
         }
-        println!("{} +> {:?}",hoz_vec, last);
+        //println!("{} +> {:?} / {:?}",hoz_vec, last, current_node.clone());
     }
 
-    println!("{:?}", nodes);
+    println!("{:#?}", nodes);
 }
