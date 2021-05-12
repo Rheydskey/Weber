@@ -1,4 +1,3 @@
-use crate::engine::parser::Parser;
 use crate::engine::parse;
 
 pub mod engine;
